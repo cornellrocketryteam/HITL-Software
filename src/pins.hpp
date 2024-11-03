@@ -6,3 +6,7 @@
  */
 
 #define LED 25
+
+// GPIO pins to use for I2C
+#define GPIO_SDA0 12
+#define GPIO_SCK0 13
