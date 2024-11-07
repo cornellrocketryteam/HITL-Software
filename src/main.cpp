@@ -11,7 +11,6 @@
 #include "pico/i2c_slave.h"
 #include "pins.hpp"
 #include "tusb.h"
-#include "data/past_data_1.csv"
 #include <iostream>
 #include <string>
 #include <fstream>
@@ -61,12 +60,6 @@ float interpolate(Data f[], int xi, int n)
     return result;
 }
 
-// in meters 50 ms in between each point (usually)
-
-void alt_interpolate(float t){
-// TODO: implement this
-}
-
 // The slave implements a 256 byte memory. To write a series of bytes, the master first
 // writes the memory address, followed by the data. The address is automatically incremented
 // for each byte transferred, looping back to 0 upon reaching the end. Reading is done
@@ -81,6 +74,8 @@ static struct
 // Our handler is called from the I2C ISR, so it must complete quickly. Blocking calls /
 // printing to stdio may interfere with interrupt handling.
 static void i2c_slave_handler(i2c_inst_t *i2c, i2c_slave_event_t event) {
+    static uint8_t response_byte = 0x50;
+
     switch (event) {
     case I2C_SLAVE_RECEIVE: // master has written some data
         if (!context.mem_address_written) {
@@ -95,8 +90,8 @@ static void i2c_slave_handler(i2c_inst_t *i2c, i2c_slave_event_t event) {
         break;
     case I2C_SLAVE_REQUEST: // master is requesting data
         // load from memory
-        i2c_write_byte_raw(i2c, context.mem[context.mem_address]);
-        context.mem_address++;
+        i2c_write_raw_blocking(i2c, &response_byte, 1);
+        // context.mem_address++;
         break;
     case I2C_SLAVE_FINISH: // master has signalled Stop / Restart
         context.mem_address_written = false;
@@ -118,6 +113,55 @@ static void setup_slave() {
     i2c_init(i2c0, I2C_BAUDRATE);
     // configure I2C0 for slave mode
     i2c_slave_init(i2c0, I2C0_SLAVE_ADDR, &i2c_slave_handler);
+}
+
+// Write 1 byte to the specified register
+int reg_write(  i2c_inst_t *i2c, 
+                const uint addr, 
+                const uint8_t reg, 
+                uint8_t *buf,
+                const uint8_t nbytes) {
+
+    int num_bytes_read = 0;
+    uint8_t msg[nbytes + 1];
+
+    // Check to make sure caller is sending 1 or more bytes
+    if (nbytes < 1) {
+        return 0;
+    }
+
+    // Append register address to front of data packet
+    msg[0] = reg;
+    for (int i = 0; i < nbytes; i++) {
+        msg[i + 1] = buf[i];
+    }
+
+    // Write data to register(s) over I2C
+    i2c_write_blocking(i2c, addr, msg, (nbytes + 1), false);
+
+    return num_bytes_read;
+}
+
+// Read byte(s) from specified register. If nbytes > 1, read from consecutive
+// registers.
+int reg_read(  i2c_inst_t *i2c,
+                const uint addr,
+                const uint8_t reg,
+                uint8_t *buf,
+                const uint8_t nbytes) {
+
+    int num_bytes_read = 0;
+
+    // Check to make sure caller is asking for 1 or more bytes
+    if (nbytes < 1) {
+        return 0;
+    }
+
+    // Read data from register(s) over I2C
+    i2c_write_blocking(i2c, addr, &reg, 1, true);
+    num_bytes_read = i2c_read_blocking(i2c, addr, buf, nbytes, false);
+
+    return num_bytes_read;
 }
 
 int main() {
@@ -153,6 +197,8 @@ int main() {
         sleep_ms(1000);
         gpio_put(LED, false);
         sleep_ms(1000);
+
+        
 
     }
 
