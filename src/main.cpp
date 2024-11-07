@@ -15,6 +15,7 @@
 #include <string>
 #include <fstream>
 #include <sstream>
+#include "constants.hpp"
 
 
 // define I2C addresses of slave (rn it's the altimeter's)
@@ -71,27 +72,36 @@ static struct
     bool mem_address_written;
 } context;
 
+
 // Our handler is called from the I2C ISR, so it must complete quickly. Blocking calls /
 // printing to stdio may interfere with interrupt handling.
 static void i2c_slave_handler(i2c_inst_t *i2c, i2c_slave_event_t event) {
     static uint8_t response_byte = 0x50;
+    static uint8_t register_address = 0x0;
+
+    bool chip_id_data = false;
 
     switch (event) {
     case I2C_SLAVE_RECEIVE: // master has written some data
-        if (!context.mem_address_written) {
-            // writes always start with the memory address
-            context.mem_address = i2c_read_byte_raw(i2c);
-            context.mem_address_written = true;
-        } else {
-            // save into memory
-            context.mem[context.mem_address] = i2c_read_byte_raw(i2c);
-            context.mem_address++;
+        i2c_read_raw_blocking(i2c, &register_address, 1);
+
+        switch(register_address){
+            case 0x0:
+                chip_id_data = true;
+                break;
+            
+            default:
+                break;
+
         }
+
         break;
     case I2C_SLAVE_REQUEST: // master is requesting data
-        // load from memory
-        i2c_write_raw_blocking(i2c, &response_byte, 1);
-        // context.mem_address++;
+        if (I2C_SLAVE_REQUEST)
+        {
+            if (chip_id_data)
+            {i2c_write_raw_blocking(i2c, &response_byte, 1);}
+        }
         break;
     case I2C_SLAVE_FINISH: // master has signalled Stop / Restart
         context.mem_address_written = false;
