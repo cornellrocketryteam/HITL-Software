@@ -1,61 +1,89 @@
 #include <cstdio>
-#include <iostream>
 #include <string>
-#include <fstream>
 #include <sstream>
+#include <iostream>
 #include <vector>
+#include <fstream>
 
-// function that splits a string based on a delimeter
-std::vector<std::string> splitString(const std::string& str, char delimiter) {
-    std::vector<std::string> result;
-    std::string current;
-    for (char c : str) {
-        if (c == delimiter) {
-            result.push_back(current);
-            current.clear();
-        } else {
-            current += c;
+std::vector<std::string> SplitCSV(const std::string &data, char separator, char delimiter)
+{
+  std::vector<std::string> Values;
+  std::string Val = "";
+  bool VDel = false; // Is within delimiter?
+  size_t CDel = 0; // Delimiters counter within delimiters.
+  const char *C = data.c_str();
+  size_t P = 0;
+  do
+  {
+    if ((Val.length() == 0) && (C[P] == delimiter))
+    {
+      VDel = !VDel;
+      CDel = 0;
+      P++;
+      continue;
+    }
+    if (VDel)
+    {
+      if (C[P] == delimiter)
+      {
+        if (((CDel % 2) == 0) && ( (C[P+1] == separator) || (C[P+1] == 0) || (C[P+1] == '\n') || (C[P+1] == '\r') ))
+        {
+          VDel = false;
+          CDel = 0;
+          P++;
+          continue;
         }
+        else
+          CDel++;
+      }
     }
-    if (!current.empty()) {
-        result.push_back(current);
+    else
+    {
+      if (C[P] == separator)
+      {
+        Values.push_back(Val);
+        Val = "";
+        P++;
+        continue;
+      }
+      if ((C[P] == 0) || (C[P] == '\n') || (C[P] == '\r'))
+        break;
     }
-    return result;
+    Val += C[P];
+    P++;
+  } while(P < data.length());
+  Values.push_back(Val);
+  return Values;
 }
 
-int main() {
-  std::string filename{"data/past_data_1.csv"};
-  std::ifstream input{filename};
-
-  if (!input.is_open()) {
-    std::cerr << "Couldn't read file: " << filename << "\n";
-    return 1; 
-  }
-
-  std::vector<std::vector<std::string>> csvRows;
-
-  for (std::string line; std::getline(input, line);) {
-    std::istringstream ss(std::move(line));
-    std::vector<std::string> row;
-    if (!csvRows.empty()) {
-       // We expect each row to be as big as the first row
-      row.reserve(csvRows.front().size());
+bool ReadCsv(const std::string &fname, std::vector<std::vector<std::string>> &data,
+  char separator = ',', char delimiter = '\"')
+{
+  bool Ret = false;
+  std::ifstream FCsv(fname);
+  if (FCsv)
+  {
+    FCsv.seekg(0, FCsv.end);
+    size_t Siz = FCsv.tellg();
+    if (Siz > 0)
+    {
+      FCsv.seekg(0);
+      data.clear();
+      std::string Line;
+      while (getline(FCsv, Line, '\n'))
+        data.push_back(SplitCSV(Line, separator, delimiter));
+      Ret = true;
     }
-    // std::getline can split on other characters, here we use ','
-    for (std::string value; std::getline(ss, value, ',');) {
-      row.push_back(std::move(value));
-    }
-    csvRows.push_back(std::move(row));
+    FCsv.close();
   }
-
-  // Print out our table
-  for (const std::vector<std::string>& row : csvRows) {
-    for (const std::string& value : row) {
-      std::cout << std::setw(10) << value;
-    }
-    std::cout << "\n";
-  }
+  return Ret;
 }
 
+// int main(int argc, char *argv[])
+// {
+//   std::vector<std::vector<std::string>> Data;
+//   ReadCsv("fsample.csv", Data);
+//   return 0;
+// }
 
 
