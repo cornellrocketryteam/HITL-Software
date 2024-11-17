@@ -100,45 +100,82 @@ static void i2c_slave_handler(i2c_inst_t *i2c, i2c_slave_event_t event) {
         i2c_read_raw_blocking(i2c, data_received, 1);
 
         break;
-    case I2C_SLAVE_REQUEST: // master is requesting data
+    case I2C_SLAVE_REQUEST: {// master is requesting data
 
         // i2c_read_raw_blocking(i2c, data_received, 1);
-        i2c_write_raw_blocking(i2c, &chipid_byte, 1);
+        // i2c_write_raw_blocking(i2c, &chipid_byte, 1);
+        float d = Data_1[count];
+        printf("%.3f", d);
+        printf("\n");
 
-        switch(data_received[0]){
-            case 0x00:
-                i2c_write_raw_blocking(i2c, &chipid_byte, 1);
-            
-            case 0x03:
-                i2c_write_raw_blocking(i2c, &comm_ready_byte, 1);
+        double d_float = static_cast<double>(d) * pow(10, 6);
+        printf("%.3f", d_float);
+        printf("\n");
 
-            case 0x02:
-                i2c_write_raw_blocking(i2c, &comm_error_byte, 1);
+        const uint32_t d_int = (uint32_t) d_float;
+        printf("%d", d_int);
+        printf("\n");
 
-            case 0x7E:
-                i2c_write_raw_blocking(i2c, &comm_sr_byte, 1);
-            
-            default:
-                float d = Data_1[count];
+        uint8_t d_int_arr[4] = {};
 
-                double d_float = static_cast<double>(d) * pow(10, 6);
+        d_int_arr[0] = d_int;
+        d_int_arr[1] = d_int >> 8;
+        d_int_arr[2] = d_int >> 16;
+        d_int_arr[3] = d_int >> 24;
 
-                const uint32_t d_int = (uint32_t) d_float;
-
-                uint8_t d_int_arr[4] = {};
-
-                d_int_arr[0] = d_int;
-                d_int_arr[1] = d_int >> 8;
-                d_int_arr[2] = d_int >> 16;
-                d_int_arr[3] = d_int >> 24;
-
-                i2c_write_raw_blocking(i2c, &d_int_arr[0], 6);
-                i2c_write_raw_blocking(i2c, &d_int_arr[1], 6);
-                i2c_write_raw_blocking(i2c, &d_int_arr[2], 6);
-                i2c_write_raw_blocking(i2c, &d_int_arr[3], 6);
-
-                count++;
+        for (int i = 0; i < 4; i++){
+            printf("child data[%d]: %d\n", i, d_int_arr[i]);
         }
+
+        printf("\n\n\n");
+
+        i2c_write_raw_blocking(i2c, d_int_arr, 4);
+        // i2c_write_raw_blocking(i2c, &d_int_arr[1], 6);
+        // i2c_write_raw_blocking(i2c, &d_int_arr[2], 6);
+        // i2c_write_raw_blocking(i2c, &d_int_arr[3], 6);
+
+        count++;
+
+        // switch(data_received[0]){
+        //     case 0x00:
+        //         i2c_write_raw_blocking(i2c, &chipid_byte, 1);
+            
+        //     case 0x03:
+        //         i2c_write_raw_blocking(i2c, &comm_ready_byte, 1);
+
+        //     case 0x02:
+        //         i2c_write_raw_blocking(i2c, &comm_error_byte, 1);
+
+        //     case 0x7E:
+        //         i2c_write_raw_blocking(i2c, &comm_sr_byte, 1);
+            
+        //     default:
+        //         float d = Data_1[count];
+
+        //         double d_float = static_cast<double>(d) * pow(10, 6);
+
+        //         const uint32_t d_int = (uint32_t) d_float;
+
+        //         uint8_t d_int_arr[4] = {};
+
+        //         d_int_arr[0] = d_int;
+        //         d_int_arr[1] = d_int >> 8;
+        //         d_int_arr[2] = d_int >> 16;
+        //         d_int_arr[3] = d_int >> 24;
+
+        //         for (int i = 0; i < 4; i++){
+        //             printf("%d", d_int_arr[i]);
+        //         }
+
+        //         printf("\n\n\n");
+
+        //         i2c_write_raw_blocking(i2c, d_int_arr, 4);
+        //         // i2c_write_raw_blocking(i2c, &d_int_arr[1], 6);
+        //         // i2c_write_raw_blocking(i2c, &d_int_arr[2], 6);
+        //         // i2c_write_raw_blocking(i2c, &d_int_arr[3], 6);
+
+        //         count++;
+        // }
 
 
 
@@ -148,6 +185,7 @@ static void i2c_slave_handler(i2c_inst_t *i2c, i2c_slave_event_t event) {
         
     
         break;
+    }
     case I2C_SLAVE_FINISH: // master has signalled Stop / Restart
         context.mem_address_written = false;
         break;
