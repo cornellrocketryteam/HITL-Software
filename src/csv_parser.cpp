@@ -52,6 +52,7 @@ std::vector<std::string> SplitCSV(const std::string &data, char separator, char 
     Val += C[P];
     P++;
   } while(P < data.length());
+
   Values.push_back(Val);
   return Values;
 }
