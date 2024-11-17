@@ -89,7 +89,7 @@ static void i2c_slave_handler(i2c_inst_t *i2c, i2c_slave_event_t event) {
     static uint8_t comm_ready_byte = 0x10;
     static uint8_t comm_error_byte = 0x7E;
     static uint8_t comm_sr_byte = 0xB6;
-    static uint8_t count = 0;
+    static uint32_t count = 0;
 
     static uint8_t register_address = 0x00;
     static uint8_t data_received[1];
@@ -105,16 +105,16 @@ static void i2c_slave_handler(i2c_inst_t *i2c, i2c_slave_event_t event) {
         // i2c_read_raw_blocking(i2c, data_received, 1);
         // i2c_write_raw_blocking(i2c, &chipid_byte, 1);
         float d = Data_1[count];
-        printf("%.3f", d);
-        printf("\n");
+        // printf("%.3f", d);
+        // printf("\n");
 
         double d_float = static_cast<double>(d) * pow(10, 6);
-        printf("%.3f", d_float);
-        printf("\n");
+        // printf("%.3f", d_float);
+        // printf("\n");
 
         const uint32_t d_int = (uint32_t) d_float;
-        printf("%d", d_int);
-        printf("\n");
+        // printf("%d", d_int);
+        // printf("\n");
 
         uint8_t d_int_arr[4] = {};
 
@@ -123,18 +123,27 @@ static void i2c_slave_handler(i2c_inst_t *i2c, i2c_slave_event_t event) {
         d_int_arr[2] = d_int >> 16;
         d_int_arr[3] = d_int >> 24;
 
-        for (int i = 0; i < 4; i++){
-            printf("child data[%d]: %d\n", i, d_int_arr[i]);
-        }
+        // for (int i = 0; i < 4; i++){
+        //     printf("child data[%d]: %d\n", i, d_int_arr[i]);
+        // }
 
-        printf("\n\n\n");
+        // printf("\n\n\n");
+
+        if (count == 2432){
+            d_int_arr[0] = 0;
+            d_int_arr[1] = 0;
+            d_int_arr[2] = 0;
+            d_int_arr[3] = 0;
+        }
+        else{
+            count++;
+        }
 
         i2c_write_raw_blocking(i2c, d_int_arr, 4);
         // i2c_write_raw_blocking(i2c, &d_int_arr[1], 6);
         // i2c_write_raw_blocking(i2c, &d_int_arr[2], 6);
         // i2c_write_raw_blocking(i2c, &d_int_arr[3], 6);
 
-        count++;
 
         // switch(data_received[0]){
         //     case 0x00:
