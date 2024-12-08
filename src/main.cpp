@@ -103,6 +103,13 @@ static void i2c_slave_handler(i2c_inst_t *i2c, i2c_slave_event_t event) {
         break;
     case I2C_SLAVE_REQUEST: {// master is requesting data
 
+        // send over the MAV launch command
+        char mav_launch = '0';
+
+        const uint8_t* mav_launch_int = (const uint8_t*) &mav_launch;
+
+        i2c_write_raw_blocking(i2c, mav_launch_int, 1);
+
         // the data to send over
         float d = data[count];
         // printf("%.3f", d);
@@ -134,7 +141,8 @@ static void i2c_slave_handler(i2c_inst_t *i2c, i2c_slave_event_t event) {
         // printf("\n\n\n");
 
         // stops the count when it reaches the end of data
-        if (count == 2432){
+        int data_length = sizeof(data) / sizeof(data[0]);
+        if (count == data_length){
             d_int_arr[0] = 0;
             d_int_arr[1] = 0;
             d_int_arr[2] = 0;
